@@ -72,8 +72,26 @@ export interface TDMShared {
   players: TDMPlayerShared[]; // 各プレイヤーの集計
 }
 
-// ===== コープ・ガントレット =====
-export type EnemyType = "grunt" | "fast" | "boss";
+// ===== コープ・ガントレット／タワー共通の敵種別 =====
+// 既存コープが使う grunt/fast/boss は温存する（退行防止）。
+// standard〜summoner はタワーモードの通常敵6種、boss_* はタワーのボス5種。
+export type EnemyType =
+  | "grunt"
+  | "fast"
+  | "boss"
+  | "standard"
+  | "tank"
+  | "ranged"
+  | "exploder"
+  | "summoner"
+  | "boss_crusher"
+  | "boss_phantom"
+  | "boss_warlord"
+  | "boss_hivemind"
+  | "boss_siege";
+
+// タワーのボス5種の識別子（ServerBossState.bossType・BOSS_SCHEDULE で使用）。
+export type BossType = "crusher" | "phantom" | "warlord" | "hivemind" | "siege";
 
 export interface ServerEnemyState {
   id: string;
@@ -84,6 +102,15 @@ export interface ServerEnemyState {
   currentTarget: string | null; // 追跡中のプレイヤーID（フォローキル判定用）
   flashedBy: string | null; // フラッシュを当てた投擲者ID
   flashedUntil: number; // フラッシュ有効期限（epoch ms）
+}
+
+// タワーのボス1体ぶんの権威状態。ServerEnemyState を継承し、ボス固有の表示情報を足す。
+// hp/maxHp は ServerEnemyState のものをそのまま使う（currentHp は hp と同義）。
+export interface ServerBossState extends ServerEnemyState {
+  bossType: BossType;
+  phase: number; // 1/2/3（HPに応じた行動フェーズ。siege のみ3まで）
+  label: string; // HUD表示名（例 "CRUSHER" / "SIEGE ENGINE 最終形態"）
+  action: "none" | "charge" | "teleport" | "barrage" | "summon"; // クライアントFX用の現在アクション
 }
 
 export type CoopStatus = "ALIVE" | "DOWN" | "DEAD";
@@ -108,6 +135,39 @@ export interface CoopShared {
   wipe?: boolean; // RESULT時：全滅したか
 }
 
+// ===== タワー（100層フロア制）=====
+// コープの蘇生システムを流用しつつ、フロア進行とボスフロアを足したモード。
+export type TowerPhase =
+  | "LOBBY" // 開始前（湧き待ち）
+  | "COUNTDOWN" // フロア開始のカウントダウン
+  | "WAVE" // 通常Wave戦闘中
+  | "BOSS" // ボスフロア戦闘中
+  | "REST" // フロアクリア後の休憩
+  | "RESULT" // 全滅で終了
+  | "CLEARED"; // 100層クリアで終了
+
+// タワーのプレイヤー1人ぶんの共有状態。コープの集計に到達層を足す。
+export interface TowerPlayerShared extends CoopPlayerShared {
+  floorReached: number; // そのプレイヤーが到達した最高層
+}
+
+// タワーの共有状態（WorldStateに同梱して全クライアントへ配る）。
+export interface TowerShared {
+  phase: TowerPhase;
+  currentFloor: number; // 1..100
+  waveEnemiesRemaining: number; // 通常敵の残数（ボスは含めない）
+  restCountdown: number; // 秒（フロアクリア後の休憩）
+  countdown: number; // 秒（COUNTDOWN中の残り）
+  enemies: ServerEnemyState[]; // 通常敵（ボスは boss フィールドへ分離）
+  boss: ServerBossState | null; // ボスフロア時のみ
+  players: TowerPlayerShared[];
+  totalScore: number;
+  startedAt: number; // 開始時刻（epoch ms。クリアタイム算出用）
+  cleared: boolean; // 100層クリア済みか
+  clearTimeSec?: number; // クリアタイム（秒、クリア時のみ）
+  wipe?: boolean; // RESULT時：全滅したか
+}
+
 // ロビーに出すプレイヤー情報。
 export interface PlayerInfo {
   playerId: string;
@@ -125,6 +185,7 @@ export interface WorldState {
   lastProcessedSeq: Record<string, number>; // プレイヤーごとの処理済みseq
   tdm?: TDMShared; // チームデスマッチ時のみ
   coop?: CoopShared; // コープ・ガントレット時のみ
+  tower?: TowerShared; // タワー（coop_tower）時のみ
 }
 
 export type ErrorCode =
