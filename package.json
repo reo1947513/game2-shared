@@ -1,0 +1,7 @@
+{
+  "name": "game2-shared",
+  "version": "1.0.0",
+  "description": "ARENA STRIKE online wire protocol types (shared by client and server)",
+  "type": "module",
+  "main": "protocol.ts"
+}
