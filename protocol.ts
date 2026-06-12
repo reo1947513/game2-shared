@@ -2,6 +2,9 @@
 // game2 と game2-server の双方に git サブモジュールとして取り込み、各リポジトリの
 // netTypes は本ファイルを再エクスポートする。ここを編集すれば両側へ反映される。
 
+// ROOFTOP DUEL の型・ステージ幾何は rooftop.ts に分離し、本ファイル末尾で再エクスポートする。
+import type { RooftopShared } from "./rooftop";
+
 export interface Vec3 {
   x: number;
   y: number;
@@ -186,6 +189,7 @@ export interface WorldState {
   tdm?: TDMShared; // チームデスマッチ時のみ
   coop?: CoopShared; // コープ・ガントレット時のみ
   tower?: TowerShared; // タワー（coop_tower）時のみ
+  rooftop?: RooftopShared; // ROOFTOP DUEL 時のみ
 }
 
 export type ErrorCode =
@@ -208,6 +212,7 @@ export type ClientMessage =
   | { type: "THROW_GRENADE"; payload: { gtype: "frag" | "flash"; origin: Vec3; velocity: Vec3 } }
   | { type: "MELEE_HIT"; payload: { kind: "knife" | "kick" } }
   | { type: "REVIVE"; payload: { active: boolean } }
+  | { type: "USE_ZIPLINE"; payload: { ziplineId: string } } // ROOFTOP DUEL：ジップライン乗り込み要求
   | { type: "PING"; payload: { clientTime: number } };
 
 // ===== サーバー → クライアント =====
@@ -220,3 +225,7 @@ export type ServerMessage =
   | { type: "WORLD_STATE"; payload: WorldState }
   | { type: "PONG"; payload: { clientTime: number; serverTime: number } }
   | { type: "ERROR"; payload: { code: ErrorCode; message: string } };
+
+// ROOFTOP DUEL の型・ステージ幾何（SKYLINE FIVE）を再エクスポートする。
+// これにより両リポジトリの netTypes（export * from protocol）から参照できる。
+export * from "./rooftop";
