@@ -22,6 +22,10 @@ export interface PlayerState {
   hp: number;
   onGround: boolean;
   seq: number; // クライアントの入力シーケンス番号（lastProcessedSeq用）
+  // --- 遠隔プレイヤーの見た目同期（任意。未指定は stand / 非構え / 近接なし）---
+  stance?: "stand" | "crouch" | "prone"; // 姿勢（しゃがみ・伏せ）
+  aiming?: boolean; // ADS 構え中
+  melee?: "knife" | "kick"; // 近接スイング中のみ設定
 }
 
 // サーバー権威で物理計算するグレネードの飛行状態。
